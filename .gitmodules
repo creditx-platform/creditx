@@ -1,0 +1,18 @@
+[submodule "creditMainServ"]
+	path = creditMainServ
+	url = https://github.com/creditx-platform/creditMainServ.git
+[submodule "creditPromoServ"]
+	path = creditPromoServ
+	url = https://github.com/creditx-platform/creditPromoServ.git
+[submodule "creditHoldServ"]
+	path = creditHoldServ
+	url = https://github.com/creditx-platform/creditHoldServ.git
+[submodule "creditBatchServ"]
+	path = creditBatchServ
+	url = https://github.com/creditx-platform/creditBatchServ.git
+[submodule "creditAutoPayServ"]
+	path = creditAutoPayServ
+	url = https://github.com/creditx-platform/creditAutoPayServ.git
+[submodule "creditInfra"]
+	path = creditInfra
+	url = https://github.com/creditx-platform/creditInfra.git
