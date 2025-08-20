@@ -1,0 +1,102 @@
+services:
+  # Oracle Database
+  oracle-xe:
+    container_name: ${ORACLE_CONTAINER_NAME}
+    image: gvenzl/oracle-xe:latest
+    ports:
+      - "${ORACLE_PORT}:1521"
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PWD}
+      ORACLE_CHARACTERSET: "AL32UTF8"
+      ORACLE_PDB: ${ORACLE_SVC}
+    volumes:
+      - creditx_oradata:/opt/oracle/oradata
+    restart: unless-stopped
+
+  # Main Service
+  creditmainserv:
+    container_name: creditx-main-serv
+    build:
+      context: ./creditMainServ
+    image: creditx-creditmainserv
+    ports:
+      - "${MAIN_PORT}:8080"
+    environment:
+      ORACLE_HOST: oracle-xe
+      ORACLE_PORT: ${ORACLE_PORT}
+      ORACLE_SVC: ${ORACLE_SVC}
+      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_PASSWORD: ${ORACLE_PWD}
+    depends_on:
+      - oracle-xe
+
+  # AutoPay Service
+  creditautopayserv:
+    container_name: creditx-autopay-serv
+    build:
+      context: ./creditAutoPayServ
+    image: creditx-creditautopayserv
+    ports:
+      - "${AUTOPAY_PORT}:8080"
+    environment:
+      ORACLE_HOST: oracle-xe
+      ORACLE_PORT: ${ORACLE_PORT}
+      ORACLE_SVC: ${ORACLE_SVC}
+      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_PASSWORD: ${ORACLE_PWD}
+    depends_on:
+      - oracle-xe
+
+  # Batch Service
+  creditbatchserv:
+    container_name: creditx-batch-serv
+    build:
+      context: ./creditBatchServ
+    image: creditx-creditbatchserv
+    ports:
+      - "${BATCH_PORT}:8080"
+    environment:
+      ORACLE_HOST: oracle-xe
+      ORACLE_PORT: ${ORACLE_PORT}
+      ORACLE_SVC: ${ORACLE_SVC}
+      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_PASSWORD: ${ORACLE_PWD}
+    depends_on:
+      - oracle-xe
+
+  # Hold Service
+  creditholdserv:
+    container_name: creditx-hold-serv
+    build:
+      context: ./creditHoldServ
+    image: creditx-creditholdserv
+    ports:
+      - "${HOLD_PORT}:8080"
+    environment:
+      ORACLE_HOST: oracle-xe
+      ORACLE_PORT: ${ORACLE_PORT}
+      ORACLE_SVC: ${ORACLE_SVC}
+      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_PASSWORD: ${ORACLE_PWD}
+    depends_on:
+      - oracle-xe
+
+  # Promo Service
+  creditpromoserv:
+    container_name: creditx-promo-serv
+    build:
+      context: ./creditPromoServ
+    image: creditx-creditpromoserv
+    ports:
+      - "${PROMO_PORT}:8080"
+    environment:
+      ORACLE_HOST: oracle-xe
+      ORACLE_PORT: ${ORACLE_PORT}
+      ORACLE_SVC: ${ORACLE_SVC}
+      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_PASSWORD: ${ORACLE_PWD}
+    depends_on:
+      - oracle-xe
+
+volumes:
+  creditx_oradata:
