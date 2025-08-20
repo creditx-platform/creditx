@@ -9,6 +9,15 @@ services:
       ORACLE_PASSWORD: ${ORACLE_PWD}
       ORACLE_CHARACTERSET: "AL32UTF8"
       ORACLE_PDB: ${ORACLE_SVC}
+    healthcheck:
+      test: ["CMD",
+          "bash",
+          "-c",
+          "sqlplus -S '${ORACLE_USER}/${ORACLE_PWD}@//localhost:${ORACLE_PORT}/${ORACLE_SVC}' <<EOF\nSELECT 1 FROM DUAL;\nEXIT;\nEOF"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
     volumes:
       - creditx_oradata:/opt/oracle/oradata
     restart: unless-stopped
@@ -28,7 +37,8 @@ services:
       ORACLE_USER: ${ORACLE_USER}
       ORACLE_PASSWORD: ${ORACLE_PWD}
     depends_on:
-      - oracle-xe
+      oracle-xe:
+        condition: service_healthy
 
   # AutoPay Service
   creditautopayserv:
