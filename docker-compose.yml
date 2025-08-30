@@ -9,6 +9,10 @@ services:
       ORACLE_PASSWORD: ${ORACLE_PWD}
       ORACLE_CHARACTERSET: "AL32UTF8"
       ORACLE_PDB: FREEPDB1
+      # Add these environment variables for the init script
+      INIT_PWD: ${ORACLE_PWD}
+      INIT_USER: ${ORACLE_USER}
+      INIT_PASSWORD: ${ORACLE_PASSWORD}
     healthcheck:
       test: ["CMD",
           "bash",
