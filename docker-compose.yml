@@ -1,19 +1,19 @@
 services:
   # Oracle Database
   oracle-free:
-    container_name: ${ORACLE_CONTAINER_NAME}
+    container_name: oracle-free
     image: gvenzl/oracle-free:latest
     ports:
-      - "${ORACLE_PORT}:1521"
+      - "1521:1521"
     environment:
       ORACLE_PASSWORD: ${ORACLE_PWD}
       ORACLE_CHARACTERSET: "AL32UTF8"
-      ORACLE_PDB: ${ORACLE_SVC}
+      ORACLE_PDB: FREEPDB1
     healthcheck:
       test: ["CMD",
           "bash",
           "-c",
-          "sqlplus -S '${ORACLE_USER}/${ORACLE_PWD}@//localhost:${ORACLE_PORT}/${ORACLE_SVC}' <<EOF\nSELECT 1 FROM DUAL;\nEXIT;\nEOF"]
+          "sqlplus -S 'system/${ORACLE_PWD}@//localhost:1521/FREEPDB1' <<EOF\nSELECT 1 FROM DUAL;\nEXIT;\nEOF"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -22,39 +22,40 @@ services:
       - creditx_oradata:/opt/oracle/oradata
     restart: unless-stopped
 
-  # Kafka
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: ${KAFKA_CONTAINER_NAME}
-    ports:
-      - "${KAFKA_PORT}:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_NODE_ID: 1
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_NUM_PARTITIONS: 1
-    volumes:
-      - kafka_data:/var/lib/kafka/data
-    command:
-      - sh
-      - -c
-      - |
-        if [ ! -f /var/lib/kafka/data/cluster.id ]; then
-          CLUSTER_ID=$$(/bin/kafka-storage random-uuid)
-          echo $$CLUSTER_ID > /var/lib/kafka/data/cluster.id
-          echo "Generated and persisted Cluster ID: $$CLUSTER_ID"
-        else
-          CLUSTER_ID=$$(cat /var/lib/kafka/data/cluster.id)
-          echo "Using existing Cluster ID: $$CLUSTER_ID"
-        fi
-        export KAFKA_CLUSTER_ID=$$CLUSTER_ID
-        exec /etc/confluent/docker/run
+####Kafka########################################################################################
+##  kafka:
+##    image: confluentinc/cp-kafka:latest
+##    container_name: ${KAFKA_CONTAINER_NAME}
+##    ports:
+##      - "${KAFKA_PORT}:9092"
+##    environment:
+##      KAFKA_BROKER_ID: 1
+##      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+##      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+##      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+##      KAFKA_PROCESS_ROLES: broker,controller
+##      KAFKA_NODE_ID: 1
+##      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+##      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+##      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+##      KAFKA_NUM_PARTITIONS: 1
+##    volumes:
+##      - kafka_data:/var/lib/kafka/data
+##    command:
+##      - sh
+##      - -c
+##      - |
+##        if [ ! -f /var/lib/kafka/data/cluster.id ]; then
+##          CLUSTER_ID=$$(/bin/kafka-storage random-uuid)
+##          echo $$CLUSTER_ID > /var/lib/kafka/data/cluster.id
+##          echo "Generated and persisted Cluster ID: $$CLUSTER_ID"
+##        else
+##          CLUSTER_ID=$$(cat /var/lib/kafka/data/cluster.id)
+##          echo "Using existing Cluster ID: $$CLUSTER_ID"
+##        fi
+##        export KAFKA_CLUSTER_ID=$$CLUSTER_ID
+##        exec /etc/confluent/docker/run
+#################################################################################################
 
   # Main Service
   creditmainserv:
@@ -63,17 +64,54 @@ services:
       context: ./creditMainServ
     image: creditx-creditmainserv
     ports:
-      - "${MAIN_PORT}:8080"
+      - "8080:8080"
     environment:
-      ORACLE_HOST: oracle-xe
-      ORACLE_PORT: ${ORACLE_PORT}
-      ORACLE_SVC: ${ORACLE_SVC}
-      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_HOST: oracle-free
+      ORACLE_PORT: 1521
+      ORACLE_SVC: FREEPDB1
+      ORACLE_USER: system
       ORACLE_PASSWORD: ${ORACLE_PWD}
     depends_on:
       oracle-free:
         condition: service_healthy
 
+  # Hold Service
+  creditholdserv:
+    container_name: creditx-hold-serv
+    build:
+      context: ./creditHoldServ
+    image: creditx-creditholdserv
+    ports:
+      - "8081:8080"
+    environment:
+      ORACLE_HOST: oracle-free
+      ORACLE_PORT: 1521
+      ORACLE_SVC: FREEPDB1
+      ORACLE_USER: system
+      ORACLE_PASSWORD: ${ORACLE_PWD}
+    depends_on:
+      oracle-free:
+        condition: service_healthy
+
+  # Posting Service
+  creditpostingserv:
+    container_name: creditx-posting-serv
+    build:
+      context: ./creditPostingServ
+    image: creditx-creditpostingserv
+    ports:
+      - "8082:8080"
+    environment:
+      ORACLE_HOST: oracle-free
+      ORACLE_PORT: 1521
+      ORACLE_SVC: FREEPDB1
+      ORACLE_USER: system
+      ORACLE_PASSWORD: ${ORACLE_PWD}
+    depends_on:
+      oracle-free:
+        condition: service_healthy
+        
+###################################################################################################
 ##  # AutoPay Service
 ##  creditautopayserv:
 ##    container_name: creditx-autopay-serv
@@ -141,6 +179,7 @@ services:
 ##      ORACLE_PASSWORD: ${ORACLE_PWD}
 ##    depends_on:
 ##      - oracle-free
+###################################################################################################
 
 volumes:
   creditx_oradata:
