@@ -1,4 +1,33 @@
 services:
+  # Kafka
+  kafka:
+    container_name: kafka
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # Oracle Database
   oracle-free:
     container_name: oracle-free
@@ -9,7 +38,6 @@ services:
       ORACLE_PASSWORD: ${ORACLE_PWD}
       ORACLE_CHARACTERSET: "AL32UTF8"
       ORACLE_PDB: FREEPDB1
-      # Add these environment variables for the init script
       INIT_PWD: ${ORACLE_PWD}
       INIT_USER: ${ORACLE_USER}
       INIT_PASSWORD: ${ORACLE_PASSWORD}
@@ -41,9 +69,15 @@ services:
       ORACLE_SVC: FREEPDB1
       ORACLE_USER: ${ORACLE_USER}
       ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      CREDITHOLD_URL: ${CREDITHOLD_URL}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       oracle-free:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+      creditholdserv:
+        condition: service_started
 
   # Hold Service
   creditholdserv:
@@ -59,8 +93,11 @@ services:
       ORACLE_SVC: FREEPDB1
       ORACLE_USER: ${ORACLE_USER}
       ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       oracle-free:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
 
   # Posting Service
@@ -77,9 +114,15 @@ services:
       ORACLE_SVC: FREEPDB1
       ORACLE_USER: ${ORACLE_USER}
       ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      CREDITMAIN_URL: ${CREDITMAIN_URL}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
       oracle-free:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+      creditmainserv:
+        condition: service_started
 
 volumes:
   creditx_oradata:
