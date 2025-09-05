@@ -17,8 +17,9 @@ echo "Creating ${INIT_USER} database users with suffixes..."
 MAIN_USER="${INIT_USER}_MAIN"
 HOLD_USER="${INIT_USER}_HOLD"
 POST_USER="${INIT_USER}_POST"
+PROMO_USER="${INIT_USER}_PROMO"
 
-echo "Creating users: ${MAIN_USER}, ${HOLD_USER}, ${POST_USER}"
+echo "Creating users: ${MAIN_USER}, ${HOLD_USER}, ${POST_USER}, ${PROMO_USER}"
 
 # Connect directly to FREEPDB1 and create users
 sqlplus -s "sys/${INIT_PWD}@//localhost:1521/FREEPDB1" AS SYSDBA <<EOF
@@ -45,6 +46,12 @@ sqlplus -s "sys/${INIT_PWD}@//localhost:1521/FREEPDB1" AS SYSDBA <<EOF
         IF user_exists > 0 THEN
             EXECUTE IMMEDIATE 'DROP USER ${POST_USER} CASCADE';
         END IF;
+
+        -- Drop ${PROMO_USER}
+        SELECT COUNT(*) INTO user_exists FROM dba_users WHERE username = '${PROMO_USER^^}';
+        IF user_exists > 0 THEN
+            EXECUTE IMMEDIATE 'DROP USER ${PROMO_USER} CASCADE';
+        END IF;
     END;
     /
     
@@ -62,6 +69,11 @@ sqlplus -s "sys/${INIT_PWD}@//localhost:1521/FREEPDB1" AS SYSDBA <<EOF
     CREATE USER ${POST_USER} IDENTIFIED BY "${INIT_PASSWORD}";
     GRANT CONNECT, RESOURCE TO ${POST_USER};
     ALTER USER ${POST_USER} QUOTA UNLIMITED ON USERS;
+
+    -- Create ${PROMO_USER} user (Promo Service)
+    CREATE USER ${PROMO_USER} IDENTIFIED BY "${INIT_PASSWORD}";
+    GRANT CONNECT, RESOURCE TO ${PROMO_USER};
+    ALTER USER ${PROMO_USER} QUOTA UNLIMITED ON USERS;
     
     -- Verify creation
     SELECT '${MAIN_USER} created' as result FROM DUAL 
@@ -73,6 +85,9 @@ sqlplus -s "sys/${INIT_PWD}@//localhost:1521/FREEPDB1" AS SYSDBA <<EOF
     SELECT '${POST_USER} created' as result FROM DUAL 
     WHERE EXISTS (SELECT 1 FROM dba_users WHERE username = '${POST_USER^^}');
     
+    SELECT '${PROMO_USER} created' as result FROM DUAL 
+    WHERE EXISTS (SELECT 1 FROM dba_users WHERE username = '${PROMO_USER^^}');
+
     COMMIT;
     EXIT;
 EOF
@@ -82,6 +97,7 @@ if [ $? -eq 0 ]; then
     echo "   - ${MAIN_USER} (Main Service)"
     echo "   - ${HOLD_USER} (Hold Service)" 
     echo "   - ${POST_USER} (Posting Service)"
+    echo "   - ${PROMO_USER} (Promo Service)"
 else
     echo "❌ User creation failed"
     exit 1

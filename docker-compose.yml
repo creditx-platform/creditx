@@ -134,5 +134,29 @@ services:
       creditmainserv:
         condition: service_started
 
+  # Promo Service
+  creditpromoserv:
+    container_name: creditx-promo-serv
+    build:
+      context: ./creditPromoServ
+    image: creditx-creditpromoserv
+    ports:
+      - "8083:8080"
+    environment:
+      ORACLE_HOST: oracle-free
+      ORACLE_PORT: 1521
+      ORACLE_SVC: FREEPDB1
+      ORACLE_USER: ${ORACLE_USER}_PROMO
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      CREDITMAIN_URL: ${CREDITMAIN_URL}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      oracle-free:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      creditmainserv:
+        condition: service_started
+
 volumes:
   creditx_oradata:
