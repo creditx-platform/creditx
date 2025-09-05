@@ -7,3 +7,6 @@
 [submodule "creditPostingServ"]
 	path = creditPostingServ
 	url = https://github.com/creditx-platform/creditPostingServ.git
+[submodule "creditPromoServ"]
+	path = creditPromoServ
+	url = https://github.com/creditx-platform/creditPromoServ.git
